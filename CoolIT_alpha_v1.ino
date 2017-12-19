@@ -3,9 +3,12 @@
 #include <LCD.h>
 #include <LiquidCrystal_I2C.h>
 
+//Variabile
+float hum;  //Stores humidity value 
+float temp; //Stores temperature value
 Adafruit_HTU21DF htu = Adafruit_HTU21DF(); // pentru senzor
 
-//ALWAYS USE THIS WITH LCD I2C and Addres 0x3F
+//Setare display
 #define I2C_ADDR 0x3F
 #define BACKLIGHT_PIN 3
 #define En_pin 2
@@ -17,11 +20,24 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF(); // pentru senzor
 #define D7_pin 7
 LiquidCrystal_I2C lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 
-//Variables
-int chk;
-float hum;  //Stores humidity value 
-float temp; //Stores temperature value
-const int buzzer = 13; //buzzer to arduino pin 12
+//functie de afisare a temperaturii si umiditatii pe display
+void temp_umid_pe_display()
+{ lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Temp: ");
+  lcd.print(temp);
+  lcd.print(" ");
+  lcd.print((char)223);
+  lcd.print("C");
+  lcd.setCursor(0,1);
+  lcd.print("Hum:  ");
+  lcd.print(hum);
+  lcd.print(" %"); }
+
+  //setare buzzer
+ const int pin_de_buzzer = 12; //buzzer to arduino pin 12 
+  void buzzer()
+  {tone(pin_de_buzzer, 1000, 500);} // Send 1KHz sound signal... 
 
 
 void setup()
@@ -30,12 +46,12 @@ void setup()
  
   lcd.begin(16,2);
 
-  //set lcd
+  //setare lcd
   lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
   lcd.setBacklight(HIGH);
 
-  // Set buzzer - pin 13 as an output
-  pinMode(buzzer, OUTPUT); 
+  // Set buzzer - pin 12 as an output
+  pinMode(pin_de_buzzer, OUTPUT); 
 }
 
 void loop()
@@ -54,25 +70,11 @@ void loop()
   Serial.println(" Celsius");
 
 // print on lcd
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("Temp: ");
-  lcd.print(temp);
-  lcd.print(" ");
-  lcd.print((char)223);
-  lcd.print("C");
-  lcd.setCursor(0,1);
-  lcd.print("Hum:  ");
-  lcd.print(hum);
-  lcd.print(" %");
+temp_umid_pe_display();
 
 //suna alarma
- 
   if(temp > 25 || temp < 5)
-  {tone(buzzer, 1000, 500); // Send 1KHz sound signal...
-  
-    }
+  {buzzer();}
 
-  
 
 }
