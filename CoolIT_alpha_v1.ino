@@ -4,7 +4,10 @@
 #include <LiquidCrystal_I2C.h>
 #include <SPI.h>
 #include <Ethernet.h>
+#include <SimpleTimer.h>
 
+// the timer object
+SimpleTimer timer;
 
 //Variabile senzor
 Adafruit_HTU21DF htu = Adafruit_HTU21DF(); // pentru senzor
@@ -20,21 +23,6 @@ EthernetClient client; //define 'client' as object
 String data; //GET query with data
 boolean conexi = false;
 
-// functii pt trimis datele
-void IaData(){
-  data+="";
-  data+="GET /pushingbox?devid=v257BB0252CCEE9F&tempData="; //GET request query to pushingbox API
-  data+=temp;
-  data+=" HTTP/1.1";
-}
-void sendData(){
-  Serial.println("connected");
-  client.println(data);
-  client.println("Host: api.pushingbox.com");
-  client.println("Connection: close");
-  client.println();}
-
-
 //Setare display
 #define I2C_ADDR 0x3F
 #define BACKLIGHT_PIN 3
@@ -47,25 +35,10 @@ void sendData(){
 #define D7_pin 7
 LiquidCrystal_I2C lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 
-//functie de afisare a temperaturii si umiditatii pe display
-void temp_umid_pe_display()
-{ lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("Temp: ");
-  lcd.print(temp);
-  lcd.print(" ");
-  lcd.print((char)223);
-  lcd.print("C");
-  lcd.setCursor(0,1);
-  lcd.print("Hum:  ");
-  lcd.print(hum);
-  lcd.print(" %"); }
-
   //setare buzzer
  const int pin_de_buzzer = 12; //buzzer to arduino pin 12 
-  void buzzer() {tone(pin_de_buzzer, 1000, 500);} // Send 1KHz sound signal... 
 
-
+  
 void setup() {
 
   Serial.begin(9600);
@@ -84,6 +57,9 @@ void setup() {
   Serial.println("Failed to configure Ethernet using DHCP");
   Ethernet.begin(mac, ip);
   }
+  timer.setInterval(5000, temp_umid_pe_display );
+  timer.setInterval(5000, temp_umid_pe_serial );
+  timer.setInterval(300000, date_la_spreadsheet );
 
 }
 
@@ -91,23 +67,17 @@ void loop()
 {
   hum = htu.readHumidity();
   temp = htu.readTemperature();
-  
-  
-  //Print temp and humidity values to serial monitor
-  Serial.print("Humidity: ");
-  Serial.print(hum);
-  Serial.print(" %, Temp: ");
-  Serial.print(temp);
-  Serial.println(" Celsius");
 
-// print on lcd
-temp_umid_pe_display();
-
+  timer.run(); // timer pentru functile definite cu Timer.SetInterval
+  
 //suna alarma
   if(temp > 25 || temp < 5)
   {buzzer();}
-
  
+    }
+
+
+ void date_la_spreadsheet() {
    IaData(); //packing GET query with data
    Serial.println("connecting...");
    if (client.connect(server, 80)) {
@@ -133,9 +103,47 @@ temp_umid_pe_display();
           data = ""; //data reset
     }
 }
-delay(10000);
+
 
 }
 
+// functii pt trimis datele
+void IaData(){
+  data+="";
+  data+="GET /pushingbox?devid=v257BB0252CCEE9F&tempData="; //GET request query to pushingbox API
+  data+=temp;
+  data+=" HTTP/1.1";
+}
+void sendData(){
+  Serial.println("connected");
+  client.println(data);
+  client.println("Host: api.pushingbox.com");
+  client.println("Connection: close");
+  client.println();}
+
+//functie de afisare a temperaturii si umiditatii pe display
+void temp_umid_pe_display()
+{ lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Temp: ");
+  lcd.print(temp);
+  lcd.print(" ");
+  lcd.print((char)223);
+  lcd.print("C");
+  lcd.setCursor(0,1);
+  lcd.print("Hum:  ");
+  lcd.print(hum);
+  lcd.print(" %"); }
+
+  void buzzer() {tone(pin_de_buzzer, 1000, 500);} // Send 1KHz sound signal... 
+  void temp_umid_pe_serial(){
+    //Print temp and humidity values to serial monitor
+  Serial.print("Humidity: ");
+  Serial.print(hum);
+  Serial.print(" %, Temp: ");
+  Serial.print(temp);
+  Serial.println(" Celsius");
+    
+  }
 
 
